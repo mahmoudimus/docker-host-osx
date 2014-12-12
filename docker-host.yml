@@ -1,0 +1,26 @@
+---
+# somewhat taken from: https://github.com/bryfry/ansible-docker/blob/master/docker.yml
+- hosts: docker-host
+  sudo: yes
+  tasks:
+    - name: Adding Docker repository key
+      apt_key: url="https://get.docker.io/gpg" id="A88D21E9" state=present
+
+    - name: Adding Docker repository
+      apt_repository: >
+        repo='deb http://get.docker.io/ubuntu docker main'
+        update_cache=yes
+        state=present
+
+    - name: Installing Docker and Dependencies
+      apt: name="{{ item }}" state=present
+      with_items:
+        - apt-transport-https
+        - lxc-docker
+        - python-pip
+
+    - name: Installing docker-py for ansible docker module
+      pip: name=docker-py==0.5.3 state=present
+
+    - name: Adding vagrant user to docker group
+      user: name=vagrant append=yes groups=docker state=present
