@@ -1,0 +1,50 @@
+---
+# somewhat taken from: https://github.com/bryfry/ansible-docker/blob/master/docker.yml
+- hosts: docker-host
+  sudo: yes
+  tasks:
+    - name: Installing runit and git
+      apt: name="{{ item }}" state=present
+      with_items:
+        - runit
+        - git
+
+    - name: install flask
+      pip: name=flask==0.10.1 state=present
+
+    - name: copy file
+      copy: src=iamproxy dest=/opt mode=0744
+
+    - name: create secret environment dir
+      file: dest=/opt/iamproxy/env state=directory mode=0755
+
+    - name: write secret environment variables
+      copy: content={{ lookup('env', item) }} dest=/opt/iamproxy/env/{{ item }}
+      with_items:
+        - AWS_ACCESS_KEY_ID
+        - AWS_SECRET_ACCESS_KEY
+
+    - name: /etc/service directory creation
+      file: path=/etc/service/{{ item }} state=directory
+      with_items:
+        - iamproxy
+        - iamproxy/log
+        - iamproxy/log/main
+
+    - name: copy installation
+      copy: >
+        src=iamproxy/{{ item.key }}
+        dest=/etc/service/iamproxy/{{ item.value}}
+        mode=0744
+      with_items:
+        - key: sv-iamproxy-run
+          value: run
+        - key: sv-iamproxy-log-run
+          value: log/run
+
+    - name: route 169.254.169.254 to 127.0.0.1
+      shell: >
+        iptables -t nat -I OUTPUT -p tcp        \
+                 -d 169.254.169.254             \
+                 --dport 80 -j DNAT             \
+                 --to-destination 127.0.0.1:80

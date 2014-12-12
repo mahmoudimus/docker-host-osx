@@ -1,0 +1,6 @@
+#!/bin/sh
+
+exec 2>&1
+export PATH=/opt/iamproxy:$PATH
+cd /opt/iamproxy
+exec chpst -u root -U root -e "/opt/iamproxy/env" python iamproxy.py
