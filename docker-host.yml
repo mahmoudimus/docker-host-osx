@@ -2,9 +2,14 @@
 # somewhat taken from: https://github.com/bryfry/ansible-docker/blob/master/docker.yml
 - hosts: docker-host
   sudo: yes
+  vars:
+    docker_version: 1.4.0
+    is_precise: "'{{ ansible_distribution_release | lower }}' == 'precise'"
+    is_trusty: "'{{ ansible_distribution_release | lower }}' == 'trusty'"
   tasks:
     - name: Adding Docker repository key
-      apt_key: url="https://get.docker.io/gpg" id="A88D21E9" state=present
+      apt_key: >
+        url="https://get.docker.io/gpg" id="A88D21E9" state=present
 
     - name: Adding Docker repository
       apt_repository: >
@@ -16,7 +21,7 @@
       apt: name="{{ item }}" state=present
       with_items:
         - apt-transport-https
-        - lxc-docker
+        - "lxc-docker-{{ docker_version }}"
         - python-pip
 
     - name: Installing docker-py for ansible docker module
@@ -24,3 +29,46 @@
 
     - name: Adding vagrant user to docker group
       user: name=vagrant append=yes groups=docker state=present
+
+- hosts: docker-host
+  sudo: yes
+  vars:
+    squash_version: v0.0.11
+    squash_file: "docker-squash-linux-amd64-{{ squash_version }}.tar.gz"
+    squash_url: "https://github.com/jwilder/docker-squash/releases/download/{{ squash_version }}/{{ squash_file }}"
+  tasks:
+    - name: download docker-squash
+      get_url: url={{ squash_url }} dest=/tmp mode=0644
+
+    - name: unpack docker-squash
+      unarchive: src=/tmp/{{ squash_file }} dest=/usr/local/bin copy=no
+
+    # - name: smash grub
+    #   lineinfile: >
+    #     dest=/etc/default/grub
+    #     regexp='^GRUB_CMDLINE_LINUX='
+    #     line='GRUB_CMDLINE_LINUX="cgroup_enable=memory swapaccount=1"'
+    #   register: grub_edit
+
+    # - name: updatin grub
+    #   command: update-grub
+    #   when: grub_edit|changed
+
+    # - name: ufw forwardin
+    #   lineinfile: >
+    #     dest=/etc/default/ufw
+    #     regexp="^DEFAULT_FORWARD_POLICY="
+    #     line="DEFAULT_FORWARD_POLICY=\"ACCEPT\""
+
+    # - name: restart machine
+    #   command: shutdown -r now "Ansible updates triggered"
+    #   async: 0
+    #   poll: 0
+    #   ignore_errors: true
+    #   when: grub_edit|changed
+
+    # - name: waiting for server to come back
+    #   local_action: >
+    #     wait_for host={{ ansible_ssh_host }}
+    #              port={{ansible_ssh_port}} delay=30 state=started
+    #   sudo: false
