@@ -1,5 +1,4 @@
 ---
-# somewhat taken from: https://github.com/bryfry/ansible-docker/blob/master/docker.yml
 - hosts: docker-host
   sudo: yes
   tasks:
