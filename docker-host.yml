@@ -1,13 +1,18 @@
 ---
-# somewhat taken from: https://github.com/bryfry/ansible-docker/blob/master/docker.yml
+# With massive help from:
+# - https://github.com/bryfry/ansible-docker/blob/master/docker.yml
+# - https://github.com/bobbyrenwick/ansible-pip/blob/master/tasks/main.yml
 - hosts: all
   sudo: yes
+
   vars:
     docker_host_ip: 0.0.0.0
     docker_host_port: 2375
-    docker_version: 1.4.0
-  tasks:
+    docker_version: 1.6.2
+    docker_py_version: 1.2.2
+    pip_version: 'LATEST'
 
+  tasks:
     - name: Ubuntu | Adding Docker repository key
       apt_key: >
         url="https://get.docker.io/gpg" id="A88D21E9" state=present
@@ -25,8 +30,48 @@
       with_items:
         - apt-transport-https
         - "lxc-docker-{{ docker_version }}"
-        - python-pip
       when: ansible_os_family == 'Debian'
+
+    - name: Ubuntu | Remove system pip if it exists
+      apt: name=python-pip state=absent
+      when: ansible_os_family == 'Debian'
+
+    - name: check to see if pip is already installed
+      command: "{{ pip }} --version"
+      ignore_errors: true
+      changed_when: false
+      register: pip_is_installed
+      changed_when: false
+
+    - name: download pip
+      get_url: url=https://bootstrap.pypa.io/get-pip.py dest={{ pip_download_dest }}
+      when: pip_is_installed.rc != 0
+
+    - name: install pip
+      command: "{{ python }} {{ pip_download_dest }}/get-pip.py"
+      sudo: yes
+      when: pip_is_installed.rc != 0
+
+    - name: delete get-pip.py
+      file: state=absent
+
+    - name: check to see if pip is installed at the correct version
+      shell: "{{ pip }} --version | awk '{print $2}'"
+      register: pip_installed_version
+      changed_when: false
+      when: pip_version != None or pip_version != "LATEST"
+
+    - name: install required version of pip
+      command: "{{ pip }} install pip=={{ pip_version }}"
+      sudo: yes
+      when: pip_version != None and pip_installed_version.stdout != pip_version and pip_version != "LATEST"
+
+    - name: Upgrade to latest version of pip
+      command: "{{ pip }} install -U pip"
+      register: pip_latest_output
+      sudo: yes
+      changed_when: pip_latest_output.stdout.find('Requirement already up-to-date') == -1
+      when: pip_version == None or pip_version == "LATEST"
 
     - name: CentOS | get epel-repo rpm RHEL6
       get_url:
@@ -53,7 +98,7 @@
       when: ansible_os_family == 'RedHat'
 
     - name: Installing docker-py for ansible docker module
-      pip: name=docker-py==0.5.3 state=present
+      pip: name=docker-py=={{ docker_py_version }} state=present
 
     - name: Debian | Expose docker host
       lineinfile: >
