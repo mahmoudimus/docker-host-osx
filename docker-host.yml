@@ -10,8 +10,10 @@
     docker_host_port: 2375
     docker_version: 1.6.2
     docker_py_version: 1.2.2
-    pip_version: 'LATEST'
-
+    python: python
+    pip: pip
+    pip_version:
+    pip_download_dest: /tmp
   tasks:
     - name: Ubuntu | Adding Docker repository key
       apt_key: >
@@ -51,9 +53,6 @@
       command: "{{ python }} {{ pip_download_dest }}/get-pip.py"
       sudo: yes
       when: pip_is_installed.rc != 0
-
-    - name: delete get-pip.py
-      file: state=absent
 
     - name: check to see if pip is installed at the correct version
       shell: "{{ pip }} --version | awk '{print $2}'"

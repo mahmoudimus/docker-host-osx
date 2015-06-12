@@ -31,6 +31,7 @@ Vagrant.configure(2) do |config|
     dh.vm.provision 'ansible' do |ansible|
       ansible.playbook = 'docker-host.yml'
       ansible.host_key_checking = false
+      ansible.verbose = 'vvv'
       ansible.extra_vars = {
           :bridge_network => BRIDGE_NETWORK,
           :bridge_netmask => BRIDGE_NETMASK,
