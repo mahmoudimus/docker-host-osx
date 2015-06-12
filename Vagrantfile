@@ -3,10 +3,32 @@
 
 Vagrant.require_version '>= 1.6.5'
 
+unless Vagrant.has_plugin?('nugrant')
+  warn "[\e[1m\e[31mERROR\e[0m]: Please run: vagrant plugin install nugrant"
+  exit -1
+end
+
 BRIDGE_NETWORK = '10.2.0.10'
 BRIDGE_NETMASK = '255.255.0.0'
 
+# Setup Defaults
+#
+# Sets up defaults for vagrant-nugrant
+#
+# @return hash with defaults
+def setup_defaults()
+  {
+    'box' => {
+      'memory' => '2048',
+      'cpus' => '2'
+    }
+  }
+end
+
+
 Vagrant.configure(2) do |config|
+
+  config.user.defaults = setup_defaults
 
   # sudo route -n add -net 172.17.0.0 10.2.0.10
   # sudo route -nv add -net 192.168.59 -interface vboxnet1
@@ -16,6 +38,11 @@ Vagrant.configure(2) do |config|
   # $> sudo route -net 172.17.0.0 netmask 255.255.0.0 gw 10.2.0.10
 
   config.vm.define 'docker-host', {:primary => true} do |dh|
+
+    if Vagrant.has_plugin?('vagrant-cachier')
+      dh.cache.enable :generic, {"docker" => { cache_dir: "/cache-docker" }}
+    end
+
     dh.vm.box = 'ubuntu/trusty64'
     # http://stackoverflow.com/a/19758886/133514
     # Disable the default synced folder
@@ -26,6 +53,8 @@ Vagrant.configure(2) do |config|
       # The --nicpromisc2 translates to Promiscuous mode for nic2, where nic2 -> eth1.
       # So --nocpromisc3 would change that setting for eth2, etc.
        vb.customize ["modifyvm", :id, "--nicpromisc2", "allow-all"]
+       vb.memory = config.user.box.memory
+       vb.cpus = config.user.box.cpus
     end
 
     dh.vm.provision 'ansible' do |ansible|
