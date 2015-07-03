@@ -70,7 +70,7 @@ Vagrant.configure(2) do |config|
 
   end
 
-  config.vm.define 'centos-docker-host' do |rhdh|
+  config.vm.define 'centos-docker-host', {:autostart => false} do |rhdh|
     rhdh.vm.box = 'chef/centos-6.5'
     rhdh.vm.synced_folder '.', '/vagrant', :disabled => true
     rhdh.vm.network :private_network, :ip => BRIDGE_NETWORK, :netmask => BRIDGE_NETMASK

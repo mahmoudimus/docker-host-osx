@@ -8,8 +8,8 @@
   vars:
     docker_host_ip: 0.0.0.0
     docker_host_port: 2375
-    docker_version: 1.6.2
-    docker_py_version: 1.2.2
+    docker_version: 1.7.0
+    docker_py_version: 1.2.3
     python: python
     pip: pip
     pip_version:
